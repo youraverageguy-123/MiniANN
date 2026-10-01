@@ -1,4 +1,4 @@
-# MiniANN — C++ Artificial Neural Network Library
+# MiniANN: C++ Artificial Neural Network Library
 
 A lightweight Artificial Neural Network framework implemented from scratch in modern C++.
 Built around architectural clarity, strict encapsulation, and clean Object-Oriented Design.
