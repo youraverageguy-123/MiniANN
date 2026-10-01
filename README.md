@@ -1,88 +1,204 @@
-# MiniANN Early — Mentor Meeting 1: Design Overview (INCOMPLETE)
+# MiniANN — C++ Artificial Neural Network Library
 
-Initial-phase snapshot of Problem Statement 5. Same MVP shape as `MiniANN_MVP/`,
-deliberately **unfinished**: architecture is agreed, only the activation module is done.
+A lightweight Artificial Neural Network framework implemented from scratch in modern C++.
+Built around architectural clarity, strict encapsulation, and clean Object-Oriented Design.
 
-## What this PDF claims vs what is implemented
+Problem Statement 5 · C++17 · no external ML frameworks · 4-member team.
 
-| PDF section | Claim | Status here |
+## Overview
+
+An Artificial Neural Network consists of interconnected computational units called neurons.
+Each neuron combines inputs with learned weights, adds a bias, and applies an activation
+function:
+
+```text
+z = w · x + b
+output = activation(z)
+```
+
+MiniANN maps each of these mathematical concepts to a class or interface. The model follows
+a composition-based design:
+
+```text
+Neural Network
+    |
+  Layers
+    |
+  Neurons
+    |
+Activation Functions
+
+Training Module
+Dataset Module
+Evaluation Module
+```
+
+A core architectural decision: **the network does not train itself**. Training logic lives in
+a separate module, so learning strategies can change without modifying the model classes.
+
+OOP concepts applied throughout: abstraction, inheritance, polymorphism, encapsulation,
+and composition.
+
+## Features
+
+Current implementation status:
+
+- **Activation functions** — polymorphic `IActivation` interface with `Sigmoid`, `Tanh`,
+  and `ReLU` implementations (`activate(z)` + `derivative(z)`, derivatives evaluated at
+  pre-activation `z` so backpropagation can reuse them later)
+- **Neuron system** — weight storage, bias handling, and forward calculation
+  (`z = w·x + b`, `output = activation(z)`)
+- **Layer and network** — combining neurons into layers, chaining layers into a network
+  architecture with dimension validation and forward prediction
+- **Training system** — loss-function interface with `MSELoss`, optimizer interface with
+  `SGD` scaffolding; backpropagation and weight-update passes are on the roadmap
+- **Dataset and evaluation** — `Dataset` container with CSV loading and accuracy-metric
+  interfaces defined; full ingestion and evaluation passes are on the roadmap
+
+## Architecture
+
+| Component | Responsibility |
+|---|---|
+| `Neuron` | Smallest computational unit. Stores weights and bias, produces an output. |
+| `Layer` | Collection of neurons. Manages neurons and passes outputs forward. |
+| `Neural Network` | Combination of layers. Defines architecture and generates predictions. |
+| `IActivation` family | Non-linearity strategies, interchangeable through polymorphism. |
+| Training module | Loss calculation, backpropagation, and optimization. |
+| Dataset / Evaluation | Data handling, metrics, and testing. |
+
+Module ownership:
+
+| Member | Area | Tasks |
 |---|---|---|
-| §1–4 Overview, ANN, responsibilities, composition `Network -> Layers -> Neurons -> Activations`, network does not train itself | Design agreed | Headers + docs only |
-| §5 Activation module: `IActivation { activate(z), derivative(z) }`, `Sigmoid`, `Tanh`, `ReLU` | **First implemented component** | **DONE** (`include/miniann/activation.hpp`, `src/activation.cpp`) |
-| §6 Neuron System (weights, bias, forward) | Planned (Member 2) | Forward-only, uniform init, **no backward/gradients** |
-| §6 Layer and Network (combining neurons) | Planned (Member 1) | `forward()`/`predict()` only, **no backward** |
-| §6 Training System (loss, backprop, optimizer) | Planned (Member 3) | `MSELoss::compute` only; `SGD::step` **throws `logic_error`** |
-| §6 Dataset and Evaluation | Planned (Member 4) | `add()` only; `loadCSV`/`accuracy` **throw** |
-| §7 Team of 4 (vs 5 in final MVP) | 4-member division | Mirrored in header ownership comments |
-| §8 Roadmap 1.Design 2.Core 3.Training 4.Integration | Step 1 done | This repo = end of step 1 + start of step 2 |
-| §9 Final deliverable (create/train/evaluate/replace) | Expected later | **Not present** — see `MiniANN_MVP/` for the finished version |
-| §10 Mentor feedback questions | Asked | Left open on purpose |
+| 1 | Neural Network Core | Layer and network architecture. |
+| 2 | Neuron and Activation System | Neuron implementation and activation functions. |
+| 3 | Training System | Loss functions, backpropagation, and optimization. |
+| 4 | Dataset, Evaluation and Integration | Data handling, metrics, testing, integration, documentation. |
 
-Deliberately missing vs the full MVP: `backward()`/`zeroGradients()`, gradient
-accumulation, Xavier/He, Adam, `Trainer::fit`, mini-batches, CSV ingestion,
-`Accuracy`/`ConfusionMatrix`, `ModelSerializer`, `ILogger`, XOR learning.
+See `docs/early_prototype_report.tex` (and the compiled PDF next to it) for the full
+design write-up with architecture diagrams.
 
-## Layout
+## Project structure
 
 ```text
 MiniANN_Early/
   CMakeLists.txt
   build.bat
   include/miniann/
-    types.hpp activation.hpp neuron.hpp layer.hpp network.hpp
-    training.hpp   # ILoss/MSELoss-compute + IOptimizer/SGD stub
-    dataset.hpp    # Dataset add() + loadCSV/accuracy stubs
-  src/activation.cpp neuron.cpp layer.cpp network.cpp training.cpp dataset.cpp
-  demos/activation_demo.cpp forward_demo.cpp
-  tests/test_activation.cpp
+    types.hpp        # Vector / Matrix aliases
+    activation.hpp   # IActivation, Sigmoid, Tanh, ReLU
+    neuron.hpp       # Neuron: weights, bias, forward
+    layer.hpp        # Layer: neuron collection, forward
+    network.hpp      # NeuralNetwork: architecture + predict
+    training.hpp     # ILoss / MSELoss, IOptimizer / SGD interfaces
+    dataset.hpp      # Dataset container, loadCSV / accuracy interfaces
+  src/               # one .cpp per header
+  demos/
+    activation_demo.cpp  # activation behavior through base-class pointers
+    forward_demo.cpp     # untrained forward pass over XOR inputs
+  tests/
+    test_activation.cpp  # activation value / derivative assertions
+  docs/
+    early_prototype_report.tex / .pdf
 ```
 
-## Build + run (proves incomplete)
+## Getting started
+
+Requirements: Windows + PowerShell, `g++` with C++17 support. CMake is optional.
 
 ```bat
 cd MiniANN_Early
 .\build.bat
+```
+
+This builds `activation_demo.exe`, `forward_demo.exe`, and `test_activation.exe`.
+CMake alternative:
+
+```bat
+cmake -B build -S .
+cmake --build build --config Release
+```
+
+## Usage
+
+Polymorphic activations:
+
+```cpp
+#include "miniann/activation.hpp"
+using namespace miniann;
+
+const IActivation* a = new Sigmoid();
+a->activate(0.0);    // 0.5
+a->derivative(0.0);  // 0.25
+```
+
+Building and running a network:
+
+```cpp
+#include "miniann/network.hpp"
+using namespace miniann;
+
+NeuralNetwork net(42);                       // seeded RNG for init
+net.addLayer(2, 2, useTanh());               // hidden layer
+net.addLayer(1, 2, useSigmoid());            // output layer
+
+Vector out = net.predict({1.0, 0.0});
+```
+
+Loss values:
+
+```cpp
+#include "miniann/training.hpp"
+MSELoss loss;
+double v = loss.compute(out, {1.0});
+```
+
+Running the demos:
+
+```bat
 .\test_activation.exe
 .\activation_demo.exe
 .\forward_demo.exe
 ```
 
-Expected:
+Expected output (abbreviated):
 
 ```text
-Build OK (Meeting 1: activation + forward only)
 MEETING1 ACTIVATION TESTS PASS
 MiniANN Meeting 1: activation module
   z=0.0 -> 0.5000 (deriv 0.2500)
-  ...
-STATUS: activation DONE; training/dataset/metrics are TODO stubs
 MiniANN Meeting 1: forward-only XOR (UNTRAINED)
-  [0,0] -> 0.4371 ...
-  [1,1] -> 0.4317 ...
-training stub correctly throws: Meeting 1: SGD::step not implemented (Training phase TODO, Member 3)
-STATUS: forward works; backward/optimizer/trainer NOT implemented
+  [0,0] -> 0.4371 (mse-vs-0 0.1910)
+  [1,1] -> 0.4317 (mse-vs-0 0.1864)
 ```
 
-Note the XOR outputs are effectively random (~0.43 everywhere): forward plumbing
-works, but without backprop the network cannot learn. That is the intended
-Meeting-1 behavior.
+## Testing
 
-## How to use (early API)
+`tests/test_activation.cpp` asserts known activation values and derivatives
+(`sigmoid(0) = 0.5`, `sigmoid'(0) = 0.25`, `tanh(0) = 0`, `relu(-2) = 0`,
+`relu'(3) = 1`) including a virtual-dispatch check through `const IActivation*`.
 
-```cpp
-#include "miniann/activation.hpp"
-#include "miniann/network.hpp"
-const IActivation* a = new Sigmoid(); // polymorphism target
-a->activate(0.0);   // 0.5
-a->derivative(0.0); // 0.25
-
-miniann::NeuralNetwork net(42);
-net.addLayer(2, 2, miniann::useTanh());
-net.addLayer(1, 2, miniann::useSigmoid());
-net.predict({1.0, 0.0}); // forward only, no training API exists yet
+```bat
+.\test_activation.exe
 ```
 
-## Pushing to GitHub
+## Roadmap
 
-`.gitignore` excludes `*.exe`, `*.o`, `build/`, CMake cache, editor junk.
-`git add` only `include src demos tests CMakeLists.txt build.bat README.md docs`.
+1. **Design** — finalize architecture and define interfaces.
+2. **Core components** — implement neurons, layers, and forward propagation.
+3. **Training** — implement loss functions, backpropagation, and optimizer.
+4. **Integration and testing** — validate using datasets and prepare demonstrations.
+
+Planned final capabilities:
+
+- Creating neural networks.
+- Training using datasets.
+- Evaluating predictions.
+- Modular replacement of components (activations, losses, optimizers, metrics).
+
+## Open design questions
+
+- Is keeping training logic separate from network classes the right architectural choice?
+- Is the four-member division balanced and manageable?
+- Are activations, loss functions, optimizers, and metrics the right components for
+  expressing the OOP goals?
