@@ -196,9 +196,3 @@ Planned final capabilities:
 - Evaluating predictions.
 - Modular replacement of components (activations, losses, optimizers, metrics).
 
-## Open design questions
-
-- Is keeping training logic separate from network classes the right architectural choice?
-- Is the four-member division balanced and manageable?
-- Are activations, loss functions, optimizers, and metrics the right components for
-  expressing the OOP goals?
