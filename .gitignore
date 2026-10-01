@@ -1,0 +1,30 @@
+# Executables / object files
+*.exe
+*.out
+*.o
+*.obj
+
+# CMake build dirs / cache
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# LaTeX build artifacts (keep .tex source and compiled .pdf)
+*.aux
+*.log
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+
+# Editor / OS junk
+.vs/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
